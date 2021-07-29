@@ -1,0 +1,76 @@
+install.packages("e1071")
+library("e1071")
+install.packages("caTools")
+library(caTools)
+
+##################################################
+# classifier functions
+###################################################
+NB_Model <- function(Y,Y_index,Train_Data,Test_data,Laplace=FALSE,display=FALSE)
+{
+  if (!Laplace)
+    model = naiveBayes(Y,data = Train_Data)
+  else
+    model = naiveBayes(Y, data = Train_Data,laplace=.01)
+  
+  results <- predict (model, newdata = Test_data) 
+  conf <- table(actual=Test_data[,Y_index] ,predicted=results) 
+  
+  #### print model's apriori and conditional probability
+  if (display)
+    print(model$apriori)
+    print(model$tables)
+  ###########################
+  print("confusion matrix")
+  print(conf)
+  accuracy  <- sum(diag(conf))/sum(conf) *100
+  print("Model Accuracy")
+  accuracy 
+}
+
+Run_Randomly <- function(Y,Y_index,f_data, m_data,Test_data,Laplace=FALSE)
+{
+  f_train = f_data[sample(nrow(f_data),3500),]
+  m_train = m_data[sample(nrow(m_data),3500),]
+  
+  train_data_fm = rbind(f_train, m_train) 
+  shuffled_df = train_data_fm[sample(nrow(train_data_fm)),] ### make Random data
+  NB_Model(Y , Y_index, shuffled_df,Test_data,Laplace,TRUE)
+}
+
+#####################################################
+## initalize Data
+#####################################################
+dataset = read.table("nbtrain.csv",header = TRUE, sep= ",")
+print(dataset)
+
+train_data = as.data.frame(dataset[1:9010,])
+test_data = as.data.frame(dataset[9011:10010,])
+
+#####################################################
+## Part 1
+#############################################
+
+NB_Model(income ~.,4,train_data, test_data, FALSE,TRUE)
+
+#####################################################
+## Part 2
+#############################################
+NB_Model(gender ~.,2,train_data, test_data, TRUE,TRUE)
+
+
+#####################################################
+## Part 3
+#####################################################
+gender_split = split(train_data, train_data$gender)
+f_data = as.data.frame(gender_split$F)
+m_data = as.data.frame(gender_split$M)
+
+set.seed(50) 
+
+Run_Randomly(gender ~., 2,f_data, m_data ,test_data,TRUE)
+
+Run_Randomly(income ~., 4,f_data, m_data ,test_data,TRUE)
+
+
+###########END########################################
